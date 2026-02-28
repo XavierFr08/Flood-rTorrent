@@ -1,41 +1,25 @@
 ARG ALPINE_IMAGE=alpine:edge
 
-FROM ${ALPINE_IMAGE} as rtorrent-build
+FROM ${ALPINE_IMAGE} AS rtorrent-fetch
 
-WORKDIR /root/rtorrent
-
-RUN echo https://dl-cdn.alpinelinux.org/alpine/edge/testing >> /etc/apk/repositories
+WORKDIR /root
 
 RUN apk --no-cache add \
-	bash \
-	bazel \
-	build-base \
-	coreutils \
-	gcompat \
-	git \
-	linux-headers \
-	pythonispython3 \
-	python3 \
-	rpm
+	curl
 
-RUN rpm --initdb
+RUN set -e; \
+	ARCH="$(uname -m)"; \
+	if [ "$ARCH" = "aarch64" ]; then \
+		URL="https://github.com/jesec/rtorrent/releases/latest/download/rtorrent-linux-arm64.deb"; \
+	elif [ "$ARCH" = "x86_64" ]; then \
+		URL="https://github.com/jesec/rtorrent/releases/latest/download/rtorrent-linux-amd64.deb"; \
+	else \
+		echo "Unsupported architecture: $ARCH"; \
+		exit 1; \
+	fi; \
+	curl -fL "$URL" -o /root/rtorrent.deb
 
-RUN git clone https://github.com/jesec/rtorrent .
-
-RUN if [ "$(uname -m)" = "aarch64" ]; then \
-	  sed -i 's/architecture = "all"/architecture = "arm64"/' BUILD.bazel; \
-	elif [ "$(uname -m)" = "x86_64" ]; then \
-	  sed -i 's/architecture = "all"/architecture = "amd64"/' BUILD.bazel; \
-	fi
-
-RUN bazel build --enable_workspace --noenable_bzlmod rtorrent-deb rtorrent-rpm --features=fully_static_link --verbose_failures
-
-RUN mkdir dist
-RUN cp -L bazel-bin/rtorrent dist/
-RUN cp -L bazel-bin/rtorrent-deb.deb dist/
-RUN cp -L bazel-bin/rtorrent-rpm.rpm dist/
-
-FROM ${ALPINE_IMAGE} as rtorrent-sysroot
+FROM ${ALPINE_IMAGE} AS rtorrent-sysroot
 
 WORKDIR /root
 
@@ -45,7 +29,7 @@ RUN apk --no-cache add \
 	ncurses-terminfo-base
 
 RUN mkdir -p /root/sysroot/etc/ssl/certs
-COPY --from=rtorrent-build /root/rtorrent/dist/rtorrent-deb.deb .
+COPY --from=rtorrent-fetch /root/rtorrent.deb ./rtorrent-deb.deb
 RUN ar -xv rtorrent-deb.deb
 RUN tar xvf data.tar.* -C /root/sysroot/
 RUN cp -L /etc/ssl/certs/ca-certificates.crt /root/sysroot/etc/ssl/certs/ca-certificates.crt
