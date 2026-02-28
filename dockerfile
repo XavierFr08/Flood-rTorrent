@@ -61,19 +61,25 @@ RUN printf '%s\n' \
 	'#!/bin/sh' \
 	'set -e' \
 	'' \
-	'mkdir -p /home/download/.local/share/rtorrent/session' \
+	'mkdir -p /config/flood/session /data' \
 	'' \
-	'if [ ! -f /home/download/.rtorrent.rc ]; then' \
-	'cat > /home/download/.rtorrent.rc << "RC"' \
-	'network.scgi.open_local = /home/download/.rtorrent.sock' \
-	'execute.nothrow = chmod,770,/home/download/.rtorrent.sock' \
-	'session.path.set = /home/download/.local/share/rtorrent/session' \
-	'directory.default.set = /home/download' \
+	'if [ ! -f /config/flood/rtorrent.rc ]; then' \
+	'cat > /config/flood/rtorrent.rc << "RC"' \
+	'network.scgi.open_local = /config/flood/rtorrent.sock' \
+	'execute.nothrow = chmod,770,/config/flood/rtorrent.sock' \
+	'session.path.set = /config/flood/session' \
+	'directory.default.set = /data' \
 	'RC' \
 	'fi' \
 	'' \
-	'rtorrent -n -o import=/home/download/.rtorrent.rc &' \
-	'exec flood' \
+	'rtorrent -n -o import=/config/flood/rtorrent.rc &' \
+	'RT_PID="$!"' \
+	'sleep 2' \
+	'if ! kill -0 "$RT_PID" 2>/dev/null; then' \
+	'  echo "rTorrent failed to start" >&2' \
+	'  exit 1' \
+	'fi' \
+	'exec flood --host 0.0.0.0 --allowedpath /data --allowedpath /config/flood' \
 	> /usr/local/bin/start-flood-rtorrent.sh
 
 RUN chmod +x /usr/local/bin/start-flood-rtorrent.sh
