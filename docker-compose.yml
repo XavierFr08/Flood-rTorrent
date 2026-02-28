@@ -5,12 +5,12 @@ services:
     restart: unless-stopped
     environment:
       - FLOOD_OPTION_HOST=0.0.0.0
-      - FLOOD_OPTION_RTSOCKET=/config/flood/rtorrent.sock
-      - FLOOD_OPTION_ALLOWEDPATH=/data,/config/flood
+      - FLOOD_OPTION_RTSOCKET=/home/download/config/rtorrent.sock
+      - FLOOD_OPTION_ALLOWEDPATH=/data,/home/download/config
     ports:
       - "3000:3000"
       - "50000:50000/tcp"
       - "50000:50000/udp"
     volumes:
-      - /config/flood:/config
+      - /config/flood:/home/download/config
       - /data:/data
