@@ -28,7 +28,7 @@ RUN if [ "$(uname -m)" = "aarch64" ]; then \
 	  sed -i 's/architecture = "all"/architecture = "amd64"/' BUILD.bazel; \
 	fi
 
-RUN bazel build rtorrent-deb rtorrent-rpm --features=fully_static_link --verbose_failures
+RUN bazel build --enable_workspace --noenable_bzlmod rtorrent-deb rtorrent-rpm --features=fully_static_link --verbose_failures
 
 RUN mkdir dist
 RUN cp -L bazel-bin/rtorrent dist/
